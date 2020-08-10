@@ -96,6 +96,8 @@ public:
 
     ~Actor<T>() = default;
 
+    using type = T;
+
     // the standard forbids partial template specialization,
     // so blame them for the if constexpr
     template<typename RetT, typename ... ArgT>
@@ -118,8 +120,28 @@ public:
         }
     }
 
+    template<typename RetT, typename ... ArgT>
+    ActorReturn<RetT> call(RetT (T::*mthd) (ArgT...) const, ArgT ... args) const
+    {
+        if constexpr(!std::is_same<RetT, void>::value)
+        {
+            std::packaged_task<std::any()> mthdPacked{[=]() {
+                return std::any((self.*mthd)(args...));
+            }};
+            return ActorReturn<RetT>{thr.pushWork(std::move(mthdPacked))};
+        }
+        else
+        {
+            std::packaged_task<std::any()> mthdPacked{[=]() {
+                (self.*mthd)(args...);
+                return std::any();
+            }};
+            return ActorReturn<RetT>{thr.pushWork(std::move(mthdPacked))};
+        }
+    }
+
 private:
     T self;
-    WorkerThread thr;
+    mutable WorkerThread thr;
 };
 
