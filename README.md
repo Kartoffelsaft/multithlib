@@ -6,8 +6,8 @@ This allows for all of the methods and state of an object to be handled asynchro
 ## How do I use it?
 
 Multithlib provides the `Actor<T>` type. 
-It uses the default constructor of `T` if instantiated without a value. 
-Alternatively, it can take a `T&&` if you need your own constructor.
+If the constructor is passed the arguments of `T`'s constructor, it will construct `T` in place.
+It can alternatively be passed `T&&` to use an existing instance of `T`.
 The `Actor<T>` has a `call(...)` method that will allow dispatching method calls to the separate thread.
 
 Example:

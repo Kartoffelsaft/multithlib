@@ -55,7 +55,7 @@ TEST(ActorTest, InterActor)
     };
     
     Actor<T> t{};
-    Actor<S> s{S{&t}};
+    Actor<S> s{&t};
 
     s.call(&S::addSomeToOther, 3).get();
     

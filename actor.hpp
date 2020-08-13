@@ -98,7 +98,8 @@ template<typename T>
 class Actor
 {
 public:
-    Actor<T>(): self{T{}}, thr{WorkerThread{}} {} 
+    template<typename ... ConstructArgs>
+    Actor<T>(ConstructArgs ... args): self{args...}, thr{WorkerThread{}} {}
     Actor<T>(T&& nself): self{std::move(nself)}, thr{WorkerThread{}} {}
 
     ~Actor<T>() = default;
