@@ -38,6 +38,28 @@ TEST(ActorTest, MutableState)
     ASSERT_EQ(c.get(), 7);
 }
 
+TEST(ActorTest, InterActor)
+{
+    struct T {
+        int x;
+        T(): x{0} {}
+        void addSome(int const some) {x += some;}
+        int getX() {return x;}
+    };
+    struct S {
+        Actor<T>* other;
+        S(Actor<T>* nother): other{nother} {}
+        void addSomeToOther(int const some) {other->call(&T::addSome, some);}
+    };
+    
+    Actor<T> t{};
+    Actor<S> s{S{&t}};
+
+    s.call(&S::addSomeToOther, 3).get();
+    
+    ASSERT_EQ(t.call(&T::getX).get(), 3);
+}
+
 int main(int argc, char** argv) 
 {
     ::testing::InitGoogleTest(&argc, argv);

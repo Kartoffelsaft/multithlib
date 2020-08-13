@@ -84,7 +84,12 @@ struct ActorReturn
     std::future<std::any> ret;
 
     RetT get()
-    {return std::any_cast<RetT>(ret.get());}
+    {
+        if constexpr(!std::is_same<RetT, void>::value)
+        {return std::any_cast<RetT>(ret.get());}
+        else 
+        {ret.get();}
+    }
 };
 
 template<typename T>
