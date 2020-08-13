@@ -1,6 +1,8 @@
 #include "actor.hpp"
 #include <gtest/gtest.h>
 
+using namespace multith;
+
 TEST(ActorTest, TwoPlusTwo) 
 {
     struct F 

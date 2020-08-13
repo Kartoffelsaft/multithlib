@@ -14,6 +14,8 @@
 #include <type_traits>
 #include <condition_variable>
 
+namespace multith {
+
 class WorkerThread
 {
 public:
@@ -149,4 +151,6 @@ private:
     T self;
     mutable WorkerThread thr;
 };
+
+} // namespace multith
 
