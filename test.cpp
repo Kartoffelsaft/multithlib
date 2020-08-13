@@ -17,6 +17,27 @@ TEST(ActorTest, Lambda)
     ASSERT_EQ(l.call(&decltype(l)::type::operator()).get(), 4);
 }
 
+TEST(ActorTest, MutableState)
+{
+    struct S {
+        int x;
+        S(): x{0} {}
+        void addSome(int const some) {x += some;}
+        int getX() const {return x;}
+    };
+    Actor<S> act{};
+
+    auto a = act.call(&S::getX);
+    act.call(&S::addSome, 3);
+    auto b = act.call(&S::getX);
+    act.call(&S::addSome, 4);
+    auto c = act.call(&S::getX);
+
+    ASSERT_EQ(a.get(), 0);
+    ASSERT_EQ(b.get(), 3);
+    ASSERT_EQ(c.get(), 7);
+}
+
 int main(int argc, char** argv) 
 {
     ::testing::InitGoogleTest(&argc, argv);
