@@ -1,7 +1,8 @@
 # What is multithlib?
 
 At it's most basic, multithlib is a library that allows one to tie an object to a thread.
-This allows for all of the methods and state of an object to be handled asynchronously
+This allows for all of the methods and state of an object to be handled asynchronously.
+It was originally developed as part of [another project](https://github.com/Kartoffelsaft/Multith).
 
 ## How do I use it?
 
