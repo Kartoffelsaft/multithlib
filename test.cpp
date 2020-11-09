@@ -91,6 +91,32 @@ TEST(ActorTest, VoidDoesntBlock)
     ASSERT_LT(end - begin, threshold);
 }
 
+// very similar to the last one, with a tiny change
+TEST(ActorTest, UnusedDoesntBlock)
+{
+    auto const threshold = std::chrono::milliseconds(100);
+    struct S {
+        std::chrono::milliseconds const & threshold = threshold;
+        int doSomeExpensiveStuff() {
+            std::this_thread::sleep_for(threshold);
+
+            return 3;
+        }
+    };
+
+    Actor<S> offload;
+
+    auto begin = std::chrono::system_clock::now();
+
+    {
+        offload.call(&S::doSomeExpensiveStuff);
+    }
+
+    auto end = std::chrono::system_clock::now();
+
+    ASSERT_LT(end - begin, threshold);
+}
+
 int main(int argc, char** argv) 
 {
     ::testing::InitGoogleTest(&argc, argv);
