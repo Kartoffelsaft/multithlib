@@ -1,6 +1,11 @@
 #include "actor.hpp"
 #include <gtest/gtest.h>
 
+#include <chrono>
+#include <mutex>
+#include <ratio>
+#include <thread>
+
 using namespace multith;
 
 TEST(ActorTest, TwoPlusTwo) 
@@ -60,6 +65,30 @@ TEST(ActorTest, InterActor)
     s.call(&S::addSomeToOther, 3).get();
     
     ASSERT_EQ(t.call(&T::getX).get(), 3);
+}
+
+TEST(ActorTest, VoidDoesntBlock)
+{
+    auto const threshold = std::chrono::milliseconds(100);
+    struct S {
+        // it refuses to work without this line
+        std::chrono::milliseconds const & threshold = threshold;
+        void doSomeExpensiveStuff() {
+            std::this_thread::sleep_for(threshold);
+        }
+    };
+
+    Actor<S> offload;
+
+    auto begin = std::chrono::system_clock::now();
+
+    {
+        offload.call(&S::doSomeExpensiveStuff);
+    }
+
+    auto end = std::chrono::system_clock::now();
+
+    ASSERT_LT(end - begin, threshold);
 }
 
 int main(int argc, char** argv) 
