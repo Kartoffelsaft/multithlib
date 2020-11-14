@@ -113,14 +113,14 @@ public:
     {
         if constexpr(!std::is_same<RetT, void>::value)
         {
-            std::packaged_task<std::any()> mthdPacked{[=]() {
+            std::packaged_task<std::any()> mthdPacked{[=, this]() {
                 return std::any((self.*mthd)(args...));
             }};
             return ActorReturn<RetT>{thr.pushWork(std::move(mthdPacked))};
         }
         else
         {
-            std::packaged_task<std::any()> mthdPacked{[=]() {
+            std::packaged_task<std::any()> mthdPacked{[=, this]() {
                 (self.*mthd)(args...);
                 return std::any();
             }};
@@ -133,14 +133,14 @@ public:
     {
         if constexpr(!std::is_same<RetT, void>::value)
         {
-            std::packaged_task<std::any()> mthdPacked{[=]() {
+            std::packaged_task<std::any()> mthdPacked{[=, this]() {
                 return std::any((self.*mthd)(args...));
             }};
             return ActorReturn<RetT>{thr.pushWork(std::move(mthdPacked))};
         }
         else
         {
-            std::packaged_task<std::any()> mthdPacked{[=]() {
+            std::packaged_task<std::any()> mthdPacked{[=, this]() {
                 (self.*mthd)(args...);
                 return std::any();
             }};
