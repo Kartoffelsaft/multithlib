@@ -35,9 +35,9 @@ TEST(ActorTest, MutableState)
     Actor<S> act{};
 
     auto a = act.call(&S::getX);
-    act.call(&S::addSome, 3);
+    act.call(&S::addSome, 3).get();
     auto b = act.call(&S::getX);
-    act.call(&S::addSome, 4);
+    act.call(&S::addSome, 4).get();
     auto c = act.call(&S::getX);
 
     ASSERT_EQ(a.get(), 0);

@@ -6,6 +6,7 @@
 #include <atomic>
 #include <queue>
 #include <functional>
+#include <utility>
 #include <vector>
 #include <future>
 #include <tuple>
@@ -39,12 +40,16 @@ public:
     std::future<std::any> pushWork(std::packaged_task<std::any()>&& func)
     {
         auto ret = func.get_future();
-        {
+
+        std::thread([func = std::move(func), this]{
             std::lock_guard<std::mutex> workQueueGuard{workQueueMutex};
 
-            workQueue.push(std::move(func));
-        }
-        waiter.notify_one();
+            // for some forsaken reason, std::move() won't turn this into
+            // a && type, and will only do so with this satanic chant
+            workQueue.push((std::packaged_task<std::any()>&&)func);
+
+            waiter.notify_one();
+        }).detach();
 
         return ret;
     }
@@ -140,6 +145,8 @@ public:
         }
         else
         {
+            // don't know what universe you're in to want to have a const void
+            // function, but this is here if you really need it
             std::packaged_task<std::any()> mthdPacked{[=, this]() {
                 (self.*mthd)(args...);
                 return std::any();
