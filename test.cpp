@@ -14,14 +14,14 @@ TEST(ActorTest, TwoPlusTwo)
     {int twoPlusTwo() {return 2 + 2;}};
     Actor<F> a{};
 
-    ASSERT_EQ(a.call(&F::twoPlusTwo).get(), 4);
+    ASSERT_EQ(a.callBlockable(&F::twoPlusTwo).get(), 4);
 }
 
 TEST(ActorTest, Lambda)
 {
     auto l = Actor{[](){return 2 + 2;}};
 
-    ASSERT_EQ(l.call(&decltype(l)::type::operator()).get(), 4);
+    ASSERT_EQ(l.callBlockable(&decltype(l)::type::operator()).get(), 4);
 }
 
 TEST(ActorTest, MutableState)
@@ -34,11 +34,11 @@ TEST(ActorTest, MutableState)
     };
     Actor<S> act{};
 
-    auto a = act.call(&S::getX);
-    act.call(&S::addSome, 3).get();
-    auto b = act.call(&S::getX);
-    act.call(&S::addSome, 4).get();
-    auto c = act.call(&S::getX);
+    auto a = act.callBlockable(&S::getX);
+    act.callBlockable(&S::addSome, 3);
+    auto b = act.callBlockable(&S::getX);
+    act.callBlockable(&S::addSome, 4);
+    auto c = act.callBlockable(&S::getX);
 
     ASSERT_EQ(a.get(), 0);
     ASSERT_EQ(b.get(), 3);
@@ -56,15 +56,15 @@ TEST(ActorTest, InterActor)
     struct S {
         Actor<T>* other;
         S(Actor<T>* nother): other{nother} {}
-        void addSomeToOther(int const some) {other->call(&T::addSome, some);}
+        void addSomeToOther(int const some) {other->callUnblockable(&T::addSome, some);}
     };
     
     Actor<T> t{};
     Actor<S> s{&t};
 
-    s.call(&S::addSomeToOther, 3).get();
+    s.callBlockable(&S::addSomeToOther, 3).get();
     
-    ASSERT_EQ(t.call(&T::getX).get(), 3);
+    ASSERT_EQ(t.callBlockable(&T::getX).get(), 3);
 }
 
 TEST(ActorTest, VoidDoesntBlock)
@@ -83,7 +83,8 @@ TEST(ActorTest, VoidDoesntBlock)
     auto begin = std::chrono::system_clock::now();
 
     {
-        offload.call(&S::doSomeExpensiveStuff);
+        offload.callUnblockable(&S::doSomeExpensiveStuff);
+        offload.callBlockable(&S::doSomeExpensiveStuff);
     }
 
     auto end = std::chrono::system_clock::now();
@@ -109,7 +110,8 @@ TEST(ActorTest, UnusedDoesntBlock)
     auto begin = std::chrono::system_clock::now();
 
     {
-        offload.call(&S::doSomeExpensiveStuff);
+        offload.callUnblockable(&S::doSomeExpensiveStuff);
+        offload.callBlockable(&S::doSomeExpensiveStuff);
     }
 
     auto end = std::chrono::system_clock::now();

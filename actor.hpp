@@ -37,7 +37,7 @@ public:
         if(thr.joinable()) thr.join();
     }
 
-    std::future<std::any> pushWork(std::packaged_task<std::any()>&& func)
+    std::future<std::any> pushWorkUnblockable(std::packaged_task<std::any()>&& func)
     {
         auto ret = func.get_future();
 
@@ -50,6 +50,21 @@ public:
 
             waiter.notify_one();
         }).detach();
+
+        return ret;
+    }
+
+    std::future<std::any> pushWorkBlockable(std::packaged_task<std::any()>&& func)
+    {
+        auto ret = func.get_future();
+
+        {
+            std::lock_guard<std::mutex> workQueueGuard{workQueueMutex};
+
+            workQueue.push(std::move(func));
+        }
+
+        waiter.notify_one();
 
         return ret;
     }
@@ -114,14 +129,14 @@ public:
     // the standard forbids partial template specialization,
     // so blame them for the if constexpr
     template<typename RetT, typename ... ArgT>
-    ActorReturn<RetT> call(RetT (T::*mthd) (ArgT...), ArgT ... args)
+    ActorReturn<RetT> callUnblockable(RetT (T::*mthd) (ArgT...), ArgT ... args)
     {
         if constexpr(!std::is_same<RetT, void>::value)
         {
             std::packaged_task<std::any()> mthdPacked{[=, this]() {
                 return std::any((self.*mthd)(args...));
             }};
-            return ActorReturn<RetT>{thr.pushWork(std::move(mthdPacked))};
+            return ActorReturn<RetT>{thr.pushWorkUnblockable(std::move(mthdPacked))};
         }
         else
         {
@@ -129,19 +144,19 @@ public:
                 (self.*mthd)(args...);
                 return std::any();
             }};
-            return ActorReturn<RetT>{thr.pushWork(std::move(mthdPacked))};
+            return ActorReturn<RetT>{thr.pushWorkUnblockable(std::move(mthdPacked))};
         }
     }
 
     template<typename RetT, typename ... ArgT>
-    ActorReturn<RetT> call(RetT (T::*mthd) (ArgT...) const, ArgT ... args) const
+    ActorReturn<RetT> callUnblockable(RetT (T::*mthd) (ArgT...) const, ArgT ... args) const
     {
         if constexpr(!std::is_same<RetT, void>::value)
         {
             std::packaged_task<std::any()> mthdPacked{[=, this]() {
                 return std::any((self.*mthd)(args...));
             }};
-            return ActorReturn<RetT>{thr.pushWork(std::move(mthdPacked))};
+            return ActorReturn<RetT>{thr.pushWorkUnblockable(std::move(mthdPacked))};
         }
         else
         {
@@ -151,7 +166,49 @@ public:
                 (self.*mthd)(args...);
                 return std::any();
             }};
-            return ActorReturn<RetT>{thr.pushWork(std::move(mthdPacked))};
+            return ActorReturn<RetT>{thr.pushWorkUnblockable(std::move(mthdPacked))};
+        }
+    }
+
+    template<typename RetT, typename ... ArgT>
+    ActorReturn<RetT> callBlockable(RetT (T::*mthd) (ArgT...), ArgT ... args)
+    {
+        if constexpr(!std::is_same<RetT, void>::value)
+        {
+            std::packaged_task<std::any()> mthdPacked{[=, this]() {
+                return std::any((self.*mthd)(args...));
+            }};
+            return ActorReturn<RetT>{thr.pushWorkBlockable(std::move(mthdPacked))};
+        }
+        else
+        {
+            std::packaged_task<std::any()> mthdPacked{[=, this]() {
+                (self.*mthd)(args...);
+                return std::any();
+            }};
+            return ActorReturn<RetT>{thr.pushWorkBlockable(std::move(mthdPacked))};
+        }
+    }
+
+    template<typename RetT, typename ... ArgT>
+    ActorReturn<RetT> callBlockable(RetT (T::*mthd) (ArgT...) const, ArgT ... args) const
+    {
+        if constexpr(!std::is_same<RetT, void>::value)
+        {
+            std::packaged_task<std::any()> mthdPacked{[=, this]() {
+                return std::any((self.*mthd)(args...));
+            }};
+            return ActorReturn<RetT>{thr.pushWorkBlockable(std::move(mthdPacked))};
+        }
+        else
+        {
+            // don't know what universe you're in to want to have a const void
+            // function, but this is here if you really need it
+            std::packaged_task<std::any()> mthdPacked{[=, this]() {
+                (self.*mthd)(args...);
+                return std::any();
+            }};
+            return ActorReturn<RetT>{thr.pushWorkBlockable(std::move(mthdPacked))};
         }
     }
 
